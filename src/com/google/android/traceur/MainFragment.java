@@ -43,7 +43,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.widget.Toast;
 
-import com.android.settingslib.HelpUtils;
+//import com.android.settingslib.HelpUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -211,8 +211,8 @@ public class MainFragment extends PreferenceFragment {
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        HelpUtils.prepareHelpMenuItem(getActivity(), menu, R.string.help_url,
-            this.getClass().getName());
+        /*HelpUtils.prepareHelpMenuItem(getActivity(), menu, R.string.help_url,
+            this.getClass().getName());*/
     }
 
     private void refreshUi() {
