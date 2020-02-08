@@ -155,7 +155,7 @@ public class Receiver extends BroadcastReceiver {
                 : PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
             PackageManager.DONT_KILL_APP);
 
-        IStatusBarService statusBarService = IStatusBarService.Stub.asInterface(
+        /*IStatusBarService statusBarService = IStatusBarService.Stub.asInterface(
             ServiceManager.checkService(Context.STATUS_BAR_SERVICE));
 
         try {
@@ -168,7 +168,7 @@ public class Receiver extends BroadcastReceiver {
             }
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to modify QS tile for Traceur.", e);
-        }
+        }*/
 
         QsService.updateTile();
     }
