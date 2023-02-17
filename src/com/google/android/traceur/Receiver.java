@@ -32,6 +32,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.UserManager;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.text.TextUtils;
@@ -79,6 +80,12 @@ public class Receiver extends BroadcastReceiver {
             // We know that Perfetto won't be tracing already at boot, so pass the
             // tracingIsOff argument to avoid the Perfetto check.
             updateTracing(context, /* assumeTracingIsOff= */ true);
+        } else if (Intent.ACTION_USER_FOREGROUND.equals(intent.getAction())) {
+            boolean developerOptionsEnabled = (1 ==
+                Settings.Global.getInt(context.getContentResolver(),
+                    Settings.Global.DEVELOPMENT_SETTINGS_ENABLED , 0));
+            boolean isAdminUser = context.getSystemService(UserManager.class).isAdminUser();
+            updateStorageProvider(context, developerOptionsEnabled && isAdminUser);
         } else if (STOP_ACTION.equals(intent.getAction())) {
             prefs.edit().putBoolean(context.getString(R.string.pref_key_tracing_on), false).commit();
             updateTracing(context);
@@ -194,14 +201,9 @@ public class Receiver extends BroadcastReceiver {
                         boolean developerOptionsEnabled = (1 ==
                             Settings.Global.getInt(context.getContentResolver(),
                                 Settings.Global.DEVELOPMENT_SETTINGS_ENABLED , 0));
-
-                        ComponentName name = new ComponentName(context,
-                            StorageProvider.class);
-                        context.getPackageManager().setComponentEnabledSetting(name,
-                           developerOptionsEnabled
-                                ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-                                : PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                            PackageManager.DONT_KILL_APP);
+                        boolean isAdminUser = context.getSystemService(UserManager.class)
+                                .isAdminUser();
+                        updateStorageProvider(context, developerOptionsEnabled && isAdminUser);
 
                         if (!developerOptionsEnabled) {
                             SharedPreferences prefs =
@@ -210,6 +212,10 @@ public class Receiver extends BroadcastReceiver {
                                 context.getString(R.string.pref_key_quick_setting), false)
                                 .commit();
                             updateQuickSettings(context);
+                            // Stop an ongoing trace if one exists.
+                            if (TraceUtils.isTracingOn()) {
+                                TraceService.stopTracingWithoutSaving(context);
+                            }
                         }
                     }
                 };
@@ -218,6 +224,17 @@ public class Receiver extends BroadcastReceiver {
                 false, mDeveloperOptionsObserver);
             mDeveloperOptionsObserver.onChange(true);
         }
+    }
+
+    // Enables/disables the System Traces storage component. enableProvider should be true iff
+    // developer options are enabled and the current user is an admin user.
+    static void updateStorageProvider(Context context, boolean enableProvider) {
+        ComponentName name = new ComponentName(context, StorageProvider.class);
+        context.getPackageManager().setComponentEnabledSetting(name,
+                enableProvider
+                        ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                        : PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP);
     }
 
     private static void postCategoryNotification(Context context, SharedPreferences prefs) {
